@@ -1,0 +1,386 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang2057{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil Consolas;}{\f2\fnil\fcharset0 Consolas;}}
+{\colortbl ;\red255\green0\blue0;\red0\green0\blue0;\red0\green0\blue255;\red100\green100\blue100;\red127\green0\blue85;\red0\green0\blue192;\red106\green62\blue62;\red255\green255\blue0;\red42\green0\blue255;}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9\par
+=> Common variables are defined in the 2 Entity class : use  child class and parent class concept\par
+   1)Create  a class in the entity package  -> define the common variables here which entity  class owns\par
+   2)Create a Entity class in the Entity package -> BothEntityClasses should extend the Base class    \par
+use @MappedSuperClass annotation to make 1 class as a super class\par
+=> Conversion of classes from 1 form to another form :\par
+    eg : Dto to Entity and Entity to Dto  \par
+Steps :\par
+     1) Create a separate package mapper\par
+     2) Put the entity class name as ClassNameMapper  in the mapper package\par
+     3) create a static method whose written type should be static and conatins the parameter of that EntityclassType as well as the DtoClassType. With the help of variable parameter call the getter and setter metods and vice versa.\par
+   for example :  Dto to Entity\par
+\b\f1\fs20 public\b0  \b static\b0  Customer mapToCustomer(CustomerDto customerDto,Customer customer) \{\f0\fs22  \par
+\f1\fs20 customer.setName(customerDto.getName());\f0\fs22\par
+     4)  Go to the service layer and  create the method like createAccount and which contains the parameter "CustomerDto customerDto"\par
+          private Customer customer;\par
+          public void createAccount(CustomerDto customerDto)\{\par
+                                      CustomerMapper.mapToCustomer(customerDto, customer());  // ctrl + 1 and assign a variable , since its a static method\par
+        Customer customers = CustomerMapper.mapToCustomer(customerDto, new Customer());  \par
+customerRepository.save(customer); // ctrl+1 assign a variable \par
+     Customer customer = customerRepository.save(customer); \par
+\}\par
+Note : Customer's record has saved in the database when the client will pass the data via postman.\par
+\par
+5) Do mapping of Account class with Customer class as both contains a common variable i.e.\par
+      public int customerId;\par
+      Since in point 4, we have created a customer so the customer id is already generated. Now, we will create a method whose return type willbe Account\par
+       public Account createUserAccount( Customer customer )\{ // here customer is saved customers \par
+        account.setCustomerId(customer.getCustomerId());\par
+long randomAccountNumber = \par
+       account.setAccountNumber(randomAccountNumber);\par
+     account.setAccountType(AccountConstants.SAVINGS);\par
+return account;\par
+6) Controller Layer :\par
+\par
+=> To make the variables constants permanently :\par
+1) create a constant package \par
+2) create a class and within class define the variables  with final keyword as follows \par
+\b\f1\fs20 public\b0  \b static\b0  \b final\b0  String \b\i STATUS_201\b0\i0 ="201";\par
+\tab\b public\b0  \b static\b0  \b final\b0  String \b\i MESSAGE_201\b0\i0  ="Account created Successfully";\f0\fs22  \par
+3) Use the className. variableName to recall this variable\par
+4) also create a private constructor so that the value of the defined variables can not be changed  \par
+\par
+=> To handle and show the custom exception :\par
+1) Create a Exception package\par
+2) Name the class as CustomerAlreadyExistsException extends Exception \par
+3) create a constructor and within parameter define a variable with String msg\par
+4) Send that msg to parent Exception class using super method.\par
+5) Exception class behind the scenes will automatically create a Exception \par
+6) use the annotation, @ResponseStatus(value=HttpStatus.BAD_REQUEST) over the class\par
+7) Now, we want to verify the existing data like mobile number and based on that we will say CustomerAlreadyExists.\par
+8) Since JPARepository framework provides additional JPA-specific methods.\par
+for ex : save() , findById() , Note : find method will only look for the primary key i.e. defined\par
+so, to get the details of mobileNumber during sending the request we will validate it by a defining a custom query with in the jpa repository \par
+eg : use \b Optional<Customer> \b0 as a return type in method, which is a good practice when dealing with \b query methods \b0 that \b may not always find a result\b0 .\par
+9) In customerRepositoryInterface define the below method\par
+  public Optional<Customer> \b findByMobileNumber\b0 (String mobileNumber); \par
+ Note : \b findByMobileNumber\b0 : The method name following the Spring Data JPA naming convention. Spring Data JPA will automatically generate the query based on this method name to find a Customer by their mobile number.\par
+\b String mobileNumber\b0 : The method parameter representing the mobile number by which you want to search for a customer.\par
+Ensure that your Customer entity has a field named mobileNumber and that its type matches the type of the parameter in the method declaration (String in this case).\par
+10) Service layer :\par
+         customerRepository.findByMobileNumber(customerDto.getMobileNumber()); // ctrl +1 assign a variable \par
+Optional<Customer> optionalCustomer = customerRepository.findByMobileNumber(customerDto.getMobileNumber()); \par
+if(optionalCustomer.isPresent())\{ // create object of the Exception class and throw it\par
+throw new CustomerAlreadyExistsException("Customer Already Exists with mobile number" +customerDto.getMobileNumber());\par
+\}\par
+11) Controller Layer :\par
+When dealing with exceptions thrown by the service layer, then you can handle the exception using catch block. Here You need to provide appropriate responses to the client. \par
+\b\f1\fs20 try\b0  \{\par
+\tab\tab accountService.createCustomer(customerDto);\tab\par
+\tab\tab\b return\b0  \cf1 ResponseEntity\cf0\par
+\tab\tab\tab\tab .\i status\i0 (HttpStatus.\b\i CREATED\b0\i0 )\par
+\tab\tab\tab\tab .body(\b new\b0  ResponseDto(AccountsConstants.\b\i STATUS_201\b0\i0 ,AccountsConstants.\b\i MESSAGE_201\b0\i0 ));\par
+\tab\tab\}\b catch\b0  (Exception e) \{\par
+\tab\tab\tab\b return\b0  ResponseEntity\par
+\tab\tab\tab\tab\tab .\i status\i0 (HttpStatus.\b\i CONFLICT\b0\i0 )\par
+\tab\tab\tab\tab\tab .body(\b new\b0  ResponseDto(AccountsConstants.\b\i STATUS_409\b0\i0 ,AccountsConstants.\b\i MESSAGE_409\b0\i0 ));\par
+\cf2\tab\tab\}\cf0\f0\fs22\par
+    Note : Agar same Exception ko tmko handle karna hoga kisi dusre method mn in controller layer , tb fir se yeh try and catch block ka logic likhna padega. Hence, there will be lot of duplication logic to handle the exception inside the controller layer. \par
+12) To overcome the exception, we will be creating a class GlobalException handler inside the exception package  and add the annotation \cf1 @ControllerAdvice \cf0 , controllerAdvice annotation humko yeh btatata hn ki agar koi exception occur hota hn controller mn, tb defined method under the class GlobalException activate ho/invoke ho\par
+Steps : \par
+1) Create a   ErrorResponseDto class as follows  in DTO package\par
+\b\f1\fs20 public\b0  \b class\b0  ErrorResponseData \{\tab\par
+\tab\b private\b0  String apiPath;\par
+\tab\b private\b0  HttpStatus errorCode;\par
+\tab\b private\b0  String errorMessage;\par
+\tab\b private\b0  LocalDateTime errorTime;\par
+\}\par
+\f0\fs22\par
+2) Define the GlobalException class as follows :\par
+ @ControllerAdvice  \par
+public class GlobalExceptionHandler \{\par
+//define method as follows :\par
+public ResponseEntity<ErrorResponseDto> handleCustomerAlreadyExistsException( CustomerAlreadyExistsException customerAlreadyExistsException, WebRequest webRequest) \{\par
+// create the object of ErrorResponseDto \par
+ErrorResponseDto errorResponseDto = new ErrorResponseDto(\par
+webRequest.getDescription(false),\par
+HttpStatus.BAD_REQUEST,\par
+customerAlreadyExistsException.getMessage(),\par
+LocalDateTime.Now()  \par
+ );\par
+return new \cf1 ResponseEntity<>(\cf0 errorResponseDto,HttpStatus.BAD_REQUEST);\par
+\}\par
+Note : Here webRequest yeh btata hn ki konsa api pe request bheja gaya tha\par
+i.e. webRequest.getDescription(false);\par
+Agar isko true rakhenge toh client ka ip address wagera sb kuch mil jayega\par
+3) Add the annotation @ExceptionHandler(CustomerAlreadyExistsException.class) over the method to know which exception the created method is handling\par
+\par
+Note : Hence, agar koi exception occur hota hn then the control will never go to the controller layer from the service layer . It will directly go to the \f1\fs20 GlobalExceptionHandler \par
+\f2\lang16393 => Passing a parameter like mobile number and getting all the details of the customer present in the database\par
+1)Controller Layer :\par
+\f1\tab @GetMapping("/fetchByMobileNumber")\par
+\tab\b public\b0  ResponseEntity<CustomerDto> fetchAccountDetails(@RequestParam String mobileNumber )\{\tab\tab\par
+\tab\b return\b0  \b null\b0 ;\par
+\tab\}\f2\par
+ 2) Service Layer Interface and service layer create the method\par
+3) create a Exception class like "ResourceNotFoundException" in exception package and add the annotation over the class \f1 @ResponseStatus(value=HttpStatus.\b\i BAD_REQUEST\b0\i0 ) \f2  and then create a constructor of the class and pass the pareameter as String resourceName, String fieldName, String fieldValue.\par
+Note fieldName denotes the mobileNumber here, resourceName like user information \par
+Now, use super() method here and put all the Constructorparemeters into 1 inside the super() method\par
+super(String.format("%s not found with the input data %s : '%s'",resourceName,fieldName,fieldValue));\par
+4) Goto the globalExceptionHandler class\par
+@ControllerAdvice\par
+class GlobalExceptionHandler\{\par
+//create 1 more method \par
+@ExceptionHandler("ResourceNotFoundException.class)\par
+public ResponseEntity<ErrorResponseDto> handleResourceNotFoundException(ResourceNotFoundException resourceNotFoundException, WebRequest webRequest) \{\par
+\f1 ErrorResponseDto errorResponseDto = \b new\b0  ErrorResponseDto(webRequest.getDescription(\b false\b0 ),\par
+HttpStatus.\b\i\f2 NOT\f1 _\f2 FOUND\b0\i0\f1 , \par
+\f2 resourceNotFoundException\f1 .getMessage(), LocalDateTime.\i now\i0 ());\par
+\b return\b0  \b new\b0  ResponseEntity<>(errorResponseDto, HttpStatus.\b\i\f2 NOT_FOUND\b0\i0\f1 );\par
+\par
+\f2 5) Service layer :\par
+\par
+public CustomerDto fetchAccount(String mobileNumber)\{\par
+Customer customer = customerRepository.findByMobileNumber(mobileNumber)\par
+.orElseThrow(\par
+()->ResourceNotFoundException("customer","mobileNumber",mobileNumber)\par
+);\par
+Note : Now to get the details of the account, we will have to create a method inside the AccountRepository, as AccountRepository interface only has a accountNumber varibale as the primary key. so in order to implement\par
+findBy method provided by JPA repository , we have to define a method in it so that findBy method can be implemented on the created variable.\par
+ 6) CustomerRepository :\par
+   Optional<Account> findByCustomerId(int customerId);\par
+Now again go to point 5 above as follows : \par
+5)\cf1 Service Layer \cf0 :\par
+public CustomerDto fetchAccount(String mobileNumber)\{\par
+Customer customer = customerRepository.findByMobileNumber(mobileNumber)\par
+.orElseThrow(\par
+()->ResourceNotFoundException("customer","mobileNumber",mobileNumber)\par
+);\cf1\par
+\par
+    accountRepository.findByCustomerId(customer.getCustomerId())\par
+     .orElseThrow(\par
+()->ResourceNotFoundException("Account Details","customer Id",customer.getCustomerId().toString())\par
+);\par
+ CustomerMapper.mapToCustomerDto(Customer, new CustomerDto());\par
+//ctrl + 1\par
+CustomerDto customerDto = CustomerMapper.mapToCustomerDto(Customer, new CustomerDto());\par
+// Go to customerDto class and add a varibale here\par
+private AccountsDto accountsDto;\par
+customerDto.setAccountsDto(AccountsMapper.mapToAccountsDto(accounts,new \f1 accountsDto\f2 ());\par
+return customerDto;\par
+\par
+\cf0 7) Controller Layer :\par
+   \f1 @GetMapping("/fetchByMobileNumber")\par
+\tab\b public\b0  ResponseEntity<CustomerDto> fetchAccountDetails(@RequestParam String mobileNumber )\{\tab\par
+\f2 iAccountService.fetchAccount(mobileNumber); //ctrl + 1\par
+CustomerDto customerDto = iAccountService.fetchAccount(mobileNumber); \par
+\par
+return ResponseEntity\par
+       .status(HttpStatus.OK)\par
+        .body(customerDto)\f1\tab\par
+\tab\tab\}\par
+\f2 url : {{\field{\*\fldinst{HYPERLINK http://localhost:8081/api/fetchByMobileNumber?mobileNumber=7301077249 }}{\fldrslt{http://localhost:8081/api/fetchByMobileNumber?mobileNumber=7301077249\ul0\cf0}}}}\f2\fs20\par
+************** \par
+=> Access to update all the key-value pair except the 1 i.e AccountNumber\par
+1) Goto the IAccountsService.java interface and create a boolean method which will tell whether the update operation is successful or not\par
+boolean updateAccount(CustomerDto customerDto);\par
+2) Go to AccountsServiceImpl class and create a method as follows :\par
+\par
+public boolean updateAccount(CustomerDto customerDto)\{\par
+boolean isUpdated = false;\par
+3) Using customerDto details send by the user, try to fetch  accountDetails\par
+AccountsDto accountsDto = customerDto.getAccountsDto() ; \par
+4) findById will work only for the variables which is defined as a primary key\par
+if(accountsDto!=null)\{\par
+accountsRepository.findById(accountsDto.getAccountnumber())\par
+.orElseThrow(\par
+()-> new ResourceNotFoundException("Account", "AccountNumber",accountsDto.getAccountNumber().toString())\par
+);\par
+//ctrl + 1 assign a variable to this \par
+\par
+Accounts accounts = accountsRepository.findById(accountsDto.getAccountnumber()).orElseThrow(\par
+()-> new ResourceNotFoundException("Account", "AccountNumber",accountsDto.getAccountNumber().toString())\par
+);\par
+ \par
+5) Convert accountsDto to entity\par
+AccountsMapper.mapToAccounts(accountsDto,accounts);\par
+accounts = accountsRepository.save(accounts);\par
+ \par
+Long customerId = accounts.getCustomerId();\par
+Customer customer = customerRepository.findById(customerId).orElseThrow(\par
+()-> new ResourceNotFoundException("Customer","CustomerId",customerId.toString())\par
+);\par
+6) Convert customerDto to customer entity\par
+CustomerMapper.mapToCustomer(customerDto,customer);\par
+customerRepository.save(customer);\par
+isUpdated =true;\par
+\}\par
+return isUpdated;\par
+\}\par
+\par
+Controller Layer :\par
+1) create a method - \par
+@PutMapping("/update")\par
+public ResponseEntity<ResponseDto> updateAccountDetails(@RequestBody CustomerDto customerDto) \{\par
+\par
+boolean isUpdated = iAccountService.updateAccount(customerDto);\par
+if(isUpdated)\{\par
+return ResponseEntity\par
+ .status(HttpStatus.OK)\par
+ .body(new ResponseDto(AccountsConstants.STATUS_200,AccountsConstants.MSG_200); \par
+\}\par
+else\{\par
+return ResponseEntity\par
+ .status(HttpStatus.INTERNAL_SERVER_ERROR)\par
+ .body(new ResponseDto(AccountsConstants.STATUS_500,AccountsConstants.MSG_500);\par
+\}\} \par
+****** \par
+Delete Api :\par
+1) In IaccountService create a method :\par
+ boolean deleteAccount(String mobileNumber);\par
+2) In AccountServiceImpl override the method :\par
+ public boolean deleteAccount(String mobileNumber)\{\par
+\}\par
+3) At first we will find the details using the mobileNumber \par
+public boolean deleteAccount(String mobileNumber)\{\par
+customerRepository.findByMobileNumber(mobileNumber).orElseThrow( ()->new ResourceNotFoundException("customer","mobile number", mobileNumber)\par
+);\par
+\par
+// ctrl + 1\par
+Customer customer = customerRepository.findByMobileNumber(mobileNumber).orElseThrow( ()->new ResourceNotFoundException("customer","mobile number", mobileNumber)\par
+);\par
+4) \par
+accountsRepository.deleteByCustomerId(customer.getCustomerId());\par
+customerRepository.deleteById(customer.getCustomerId());\par
+return true;\par
+\}\par
+\par
+Note : deleteByCustomerId method is not present in accountsRepository where as deleteById is a inbuilt method present in Repository. So we have to manually create a method i.e. deleteByCustomerId in AccountRepository\par
+AccountRepository : \par
+@Transactional\par
+@Modifying\par
+void deleteByCustomerId(Long customerId);\par
+Note : @Modifying : will tell to spring data jpa that this method is going to modify the data, that's why please execute the query inside the transactions.\par
+5) Controller Layer : \par
+\par
+@DeleteMapping("/delete)\par
+public ResponseEntity<ResponseDto> deleteAccountDetails(@RequestParam String mobileNumber)\{\par
+boolean isDeleted = iAccountsService.deleteAccount(mobileNumber);\par
+if(isDeleted)\{\par
+return ResponseEntity\par
+ .status(HttpStatus.OK)\par
+ .body(new ResponseDto(AccountsConstants.STATUS_200,AccountsConstants.MSG_200));\par
+\}else \{\par
+return ResponseEntity\par
+ .status(HttpStatus.INTERNAL_SERVER_ERROR)\par
+ .body(new ResponseDto(AccountsConstants.STATUS_500,AccountsConstants.MSG_500));\par
+\par
+url : {{\field{\*\fldinst{HYPERLINK http://localhost:8080/api/delete?mobileNumber=7301077249 }}{\fldrslt{http://localhost:8080/api/delete?mobileNumber=7301077249\ul0\cf0}}}}\f2\fs20\par
+\}\}\par
+\par
+****** \par
+=> How to implement global exception/ handle RuntimeException in your application\par
+In Exception package -> create a class GlobalExceptionHandler\par
+* Use the annotation @ControllerAdvice over the class \par
+* Use the annotation @ExceptionHandler(Exception.class) over the method \par
+* \cf4\f1 @ControllerAdvice\cf0\par
+\cf5\b public\cf2\b0  \cf5\b class\cf2\b0  GlobalExceptionHandler \{\cf0\par
+\cf2\tab\cf4 @ExceptionHandler\cf2 (Exception.\cf5\b class\cf2\b0 )\cf0\par
+\cf2\tab\cf5\b public\cf2\b0  ResponseEntity<ErrorResponseDto> handle\f2 Global\f1 Exception(\f2 Exception exception, WebRequest webRequest)\{\par
+\cf5\b\f1 return\cf2\b0  ResponseEntity\cf0\par
+\cf2\tab\tab\tab\tab .\i status\i0 (HttpStatus.\cf6\b\i\f2 INTERNAL_SERVER_ERROR\cf2\b0\i0\f1 )\cf0\par
+\cf2\tab\tab\tab\tab .body(\cf5\b new\cf2\b0  ErrorResponseDto(\cf7 webRequest\cf2 .getDescription(\cf5\b false\cf2\b0 ),\cf0\par
+\cf2\tab\tab\tab\tab\tab\tab HttpStatus.\cf6\b\i\f2 INTERNAL_SERVER_ERROR\cf2\b0\i0\f1 ,\cf7\f2 e\f1 xception\cf2 .getMessage(),LocalDateTime.\i now\i0 ()));\cf0\par
+\cf2\tab\}\cf0\f2\par
+********* \par
+=> Perform Validations when we receive input data from the client :\par
+case : Input data from the client should be like mobile number should be of 10 digits or account number should be of 10 digits, else directly reject the data\par
+steps : \par
+1) You should have added the dependency "\f1 spring-boot-starter-validation\f2 " in \highlight8 pom.xml\highlight0\par
+2) We are receiving data from client in controller layer -> And then data values are set to CustomerDto and then to AccountsDto. So go to class CustomerDto as well as AccountsDto and add some validation annotations as per the requirement over the variables - \par
+\cf1 @NotEmpty\cf0\f1 (message="name can not be null or empty")\par
+\cf1 @Size\cf0 (min=5, max=30,message="The length of the customer name should be between 5 and 30")\par
+\cf1 @Pattern\cf0 (regexp = "{{\field{\*\fldinst{HYPERLINK "\\\\\\\\d\{10\}"}}{\fldrslt{\\\\d\{10\}\ul0\cf0}}}}\f1\fs20 ", message = "Mobile number must be 10 digits")\par
+\cf1 @NotEmpty\cf0 (message ="mobile number can not be null or empty")\par
+\f2 Similarly in AccountsDto :\par
+\cf2\f1 @NotEmpty(message ="branch address can not be null or empty")\par
+@NotEmpty(message ="account type can not be null or empty")\par
+@Pattern(regexp = "{\cf0{\field{\*\fldinst{HYPERLINK "\\\\\\\\d\{10\}"}}{\fldrslt{\\\\d\{10\}\ul0\cf0}}}}\f1\fs20 ", message = "Account number must be 10 digits")\par
+@NotEmpty(message ="account number can not be null or empty")\par
+\f2 3) Controller Layer :\par
+Add @Validated annotation over the class and @Valid inside the method just before @RequestBody annotation for Post and Put mapping request\par
+For Get and Delete mapping add " \f1 @Pattern(regexp = "{\cf0{\field{\*\fldinst{HYPERLINK "\\\\\\\\d\{10\}"}}{\fldrslt{\\\\d\{10\}\ul0\cf0}}}}\f1\fs20 ", message = "Mobile number must be 10 digits")\f2  annotation" after the @RequestParam in the controller layer\par
+\cf0 4) Here All the validations have been added and now in order to show the msg defined above for validations in postman response :\par
+For that \par
+\cf4\f1 @ControllerAdvice\cf0\par
+\cf5\b public\cf2\b0  \cf5\b class\cf2\b0  GlobalExceptionHandler \{\cf0\f2\par
+\cf4\f1 @ExceptionHandler\cf2 (\{MethodArgumentNotValidException.\cf5\b class\cf2\b0 , BindException.\cf5\b class\cf2\b0\})\cf0\par
+\cf2\tab     \cf5\b public\cf2\b0  ResponseEntity<Map<String, String>> handleValidationException(Exception \cf7 ex\cf2 ) \{\cf0\par
+\cf2\tab         Map<String, String> \cf7 errors\cf2  = \cf5\b new\cf2\b0  HashMap<>();\cf0\par
+\par
+\cf2\tab         \cf5\b if\cf2\b0  (\cf7 ex\cf2  \cf5\b instanceof\cf2\b0  MethodArgumentNotValidException) \{\cf0\par
+\cf2\tab             BindingResult \cf7 bindingResult\cf2  = ((MethodArgumentNotValidException) \cf7 ex\cf2 ).getBindingResult();\cf0\par
+\cf2\tab             \cf7 bindingResult\cf2 .getAllErrors().forEach(\cf7 error\cf2  -> \{\cf0\par
+\cf2\tab                 String \cf7 fieldName\cf2  = ((FieldError) \cf7 error\cf2 ).getField();\cf0\par
+\cf2\tab                 String \cf7 errorMessage\cf2  = \cf7 error\cf2 .getDefaultMessage();\cf0\par
+\cf2\tab                 \cf7 errors\cf2 .put(\cf7 fieldName\cf2 , \cf7 errorMessage\cf2 );\cf0\par
+\cf2\tab             \});\cf0\par
+\cf2\tab         \} \cf5\b else\cf2\b0  \cf5\b if\cf2\b0  (\cf7 ex\cf2  \cf5\b instanceof\cf2\b0  BindException) \{\cf0\par
+\cf2\tab             BindingResult \cf7 bindingResult\cf2  = ((BindException) \cf7 ex\cf2 ).getBindingResult();\cf0\par
+\cf2\tab             \cf7 bindingResult\cf2 .getAllErrors().forEach(\cf7 error\cf2  -> \{\cf0\par
+\cf2\tab                 String \cf7 fieldName\cf2  = ((FieldError) \cf7 error\cf2 ).getField();\cf0\par
+\cf2\tab                 String \cf7 errorMessage\cf2  = \cf7 error\cf2 .getDefaultMessage();\cf0\par
+\cf2\tab                 \cf7 errors\cf2 .put(\cf7 fieldName\cf2 , \cf7 errorMessage\cf2 );\cf0\par
+\cf2\tab             \});\cf0\par
+\cf2\tab         \}\cf0\par
+\par
+\cf2\tab         \cf5\b return\cf2\b0  ResponseEntity.\i badRequest\i0 ().body(\cf7 errors\cf2 );\cf0\par
+\cf2\tab     \}\par
+\f2 ******************************* \par
+=>Created At, Created By, Last ModifiedDate and LastModified By variables which is common in Account and customer entity. We will set these variables values as follows :\par
+1) Go To the class where these variables are defined i.e. BaseEntity class\par
+2) Add annotation @CreatedDate over the variable createdAt, @CreatedBy over the variable createdBy, @LastModifiedDate over updatedAt and @LastModifiedBy over updatedBy\par
+Note : Spring framework can get the information about createdAt and updatedAt from the local server ,\par
+=> but createdBy and updatedBy whom?\par
+   1) create a package i.e. audit\par
+   2) create a class AuditAwareImpl implements AuditorAware<String> and over the class add the annotation @Component("auditAwareImpl")\par
+   3) override the method \par
+      public Optional<String> getCurrentAuditor()\{\par
+      return Optional.of("ACCOUNTS_MS");\par
+\}\}\par
+Note : Spring Secutity concept we will get the details of logged in users instead of ACCOUNTS_MS\par
+4) Go To the class where these variables are defined i.e. BaseEntity class\par
+\cf0 and add the annotation @EntityListeners(AuditingEntityListener.class)\par
+5) Go to the class where java main method is defined i.e.\par
+public static void main(String[]args)\{ \} and over the class add the annotation @EnableJpaAuditing(auditorAwareRef = "\cf2 auditAwareImpl")\par
+6) Delete the manual code if written for createdAt and updatedAt=> go to the AccountServiceImpl class and delete the below two variables declared \par
+\f1\tab\cf7 account\cf2 .setCreatedAt(LocalDateTime.\i now\i0 ());\cf0\par
+\f2       \cf7\f1 account\cf2 .setCreatedBy(\cf9 "DeepakJaiwal"\cf2 );\f2  \par
+      \cf7\f1 newCustomer\cf2 .setCreatedAt(LocalDateTime.\i now\i0 ());\cf0\par
+\cf2\tab\cf7 newCustomer\cf2 .setCreatedBy(\cf9 "DeepakJaiwal"\cf2 );\cf0\f2\par
+=> To make other people understand your created Api :\par
+1) Open the below website\par
+{{\field{\*\fldinst{HYPERLINK https://springdoc.org/#getting-started }}{\fldrslt{https://springdoc.org/#getting-started\ul0\cf0}}}}\f2\fs20  \par
+2) Add the below dependency in pom.xml \par
+   <dependency>\par
+      <groupId>org.springdoc</groupId>\par
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>\par
+      <version>2.5.0</version>\par
+   </dependency>\par
+\par
+And then do mvn update => force update the project\par
+3) open the url in google i.e.\par
+  {{\field{\*\fldinst{HYPERLINK http://localhost:8081/swagger-ui/index.html }}{\fldrslt{http://localhost:8081/swagger-ui/index.html\ul0\cf0}}}}\f2\fs20\par
+\par
+=> Now, want to improve swagger documentation : ( will see the video later )\par
+\par
+=> Assignments to build the loans and card microservice\par
+1) open the github repository {{\field{\*\fldinst{HYPERLINK https://github.com/eazybytes/microservices }}{\fldrslt{https://github.com/eazybytes/microservices\ul0\cf0}}}}\f2\fs20  and try to build cards and loans by seeing it under section 2\par
+ \par
+ \par
+\f1\par
+\cf2\tab\cf0\f2\par
+\f0\fs22\lang9\par
+    \par
+\par
+     \par
+\par
+\par
+  \par
+\par
+}
+ 

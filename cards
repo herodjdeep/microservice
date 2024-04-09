@@ -1,0 +1,50 @@
+Git : https://github.com/eazybytes/microservices
+
+1) cards table : 
+
+CREATE TABLE IF NOT EXISTS `cards` (
+  `card_id` int NOT NULL AUTO_INCREMENT,
+  `mobile_number` varchar(15) NOT NULL,
+  `card_number` varchar(100) NOT NULL,
+  `card_type` varchar(100) NOT NULL,
+  `total_limit` int NOT NULL,
+  `amount_used` int NOT NULL,
+  `available_amount` int NOT NULL,
+  `created_at` date NOT NULL,
+  `created_by` varchar(20) NOT NULL,
+  `updated_at` date DEFAULT NULL,
+  `updated_by` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`card_id`)
+);
+
+
+**************  
+
+2) Application.yml 
+
+server:
+  port: 9000
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/microservice
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    jpa:
+    hibernate:
+      ddl-auto: update
+      show-sql: true
+    database: mysql
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+
+************ 
+
+3) https://github.com/eazybytes/microservices/tree/3.2.3/section2/cards/src/main/java/com/eazybytes/cards 
+
+all classes and packages are created here 
+
